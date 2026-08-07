@@ -1,45 +1,71 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>Video Player</title>
-    <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        #player-container { width: 100%; max-width: 800px; }
-        iframe { width: 100%; height: 450px; border: none; }
-        #controls { margin-top: 10px; }
-        button { cursor: pointer; padding: 10px; }
-    </style>
+<meta charset="UTF-8">
+<title>YouTube Viewer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+    body { margin: 0; font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    #header { padding: 10px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; }
+    #main { display: flex; flex: 1; overflow: hidden; }
+    #player-area { flex: 1; display: flex; flex-direction: column; }
+    iframe { width: 100%; height: 100%; border: none; }
+    #search-area { width: 300px; background: #181818; border-left: 1px solid #333; transition: width 0.3s; display: flex; flex-direction: column; }
+    #search-area.hidden { width: 0; border-left: none; overflow: hidden; }
+    .controls { padding: 10px; background: #252525; display: flex; gap: 10px; align-items: center; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #2196F3; }
+    input:checked + .slider:before { transform: translateX(20px); }
+</style>
 </head>
 <body>
-
-<div id="player-container">
-    <iframe src="https://www.youtube-nocookie.com/embed/WB1l9MQRi2s?autoplay=1&modestbranding=1" allowfullscreen></iframe>
+<div id="header">
+    <span>YouTube Viewer</span>
+    <button onclick="document.getElementById('search-area').classList.toggle('hidden')">検索表示/非表示</button>
 </div>
-
-<div id="controls">
-    <button id="fsbutton"><i class="material-icons">fullscreen</i></button>
+<div id="main">
+    <div id="player-area">
+        <div class="controls">
+            <label class="switch">
+                <input type="checkbox" id="mode-switch" checked>
+                <span class="slider"></span>
+            </label>
+            <span>No-Cookie</span>
+            <button id="fs-btn">全画面</button>
+        </div>
+        <iframe id="video-frame" src="about:blank"></iframe>
+    </div>
+    <div id="search-area">
+        <div id="search-results" style="padding: 10px;">検索結果がここに表示されます</div>
+    </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    let iframe = document.getElementsByTagName('iframe')[0];
-    let fsButton = document.getElementById('fsbutton');
+    const frame = document.getElementById('video-frame');
+    const modeSwitch = document.getElementById('mode-switch');
 
-    fsButton.addEventListener('click', () => {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-            else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
-            else if (document.documentElement.mozRequestFullScreen) document.documentElement.mozRequestFullScreen();
-            else if (document.documentElement.msRequestFullscreen) document.documentElement.msRequestFullscreen();
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-            else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
-            else if (document.msExitFullscreen) document.msExitFullscreen();
+    function updateSrc(videoId) {
+        if (!videoId) return;
+        const base = modeSwitch.checked ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
+        frame.src = base + videoId + '?autoplay=1';
+    }
+
+    document.getElementById('fs-btn').addEventListener('click', () => {
+        document.documentElement.requestFullscreen();
+    });
+
+
+    document.addEventListener('click', e => {
+        if (e.target.tagName === 'A' && e.target.href.includes('v=')) {
+            e.preventDefault();
+            const url = new URL(e.target.href);
+            updateSrc(url.searchParams.get('v'));
         }
-    }, false);
-});
+    });
 </script>
 </body>
 </html>
