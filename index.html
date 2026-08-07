@@ -10,11 +10,12 @@
     body { margin: 0; font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
     #header { padding: 10px 15px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 50px; flex-shrink: 0; }
     #main { display: flex; flex: 1; height: calc(100vh - 50px); overflow: hidden; position: relative; }
-    #player-area { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; }
+    
+    #player-area { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; position: relative; }
     iframe { width: 100%; height: 100%; border: none; background: #000; }
     
-    #search-area { width: 340px; background: #181818; border-left: 1px solid #333; transition: transform 0.3s ease; display: flex; flex-direction: column; height: 100%; position: absolute; right: 0; top: 0; z-index: 10; }
-    #search-area.hidden { transform: translateX(100%); }
+    #search-area { width: 340px; background: #181818; border-left: 1px solid #333; display: flex; flex-direction: column; height: 100%; flex-shrink: 0; transition: transform 0.3s ease; z-index: 10; }
+    #search-area.hidden { transform: translateX(100%); position: absolute; right: 0; top: 0; }
     
     .controls { padding: 8px 12px; background: #252525; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #333; font-size: 13px; flex-wrap: wrap; flex-shrink: 0; }
     .switch-container { display: flex; align-items: center; gap: 8px; }
