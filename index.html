@@ -40,7 +40,7 @@
     .history-list a { color: #ccc; text-decoration: none; }
     .history-list a:hover { text-decoration: underline; color: #fff; }
 
-    /* Google Custom Search ダークテーマ・レイアウト調整 */
+    /* Google Custom Search ダークテーマ調整 */
     .gsc-control-cse { background: transparent !important; border: none !important; padding: 0 !important; font-family: sans-serif !important; }
     input.gsc-input { background: #333 !important; border: 1px solid #555 !important; color: white !important; }
     .gsc-search-button-v2 { background: #444 !important; border: 1px solid #555 !important; }
@@ -182,7 +182,7 @@
         }
     });
 
-    // 検索結果内のリンクを動的に監視し、YouTubeリンクなら外部に飛ばさず左側のプレイヤーで再生する
+    // 検索結果内のリンクを監視し、YouTubeリンクなら外部に飛ばさずiframeで再生する
     const observer = new MutationObserver(() => {
         const links = document.querySelectorAll('#search-area a');
         links.forEach(link => {
