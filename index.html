@@ -39,6 +39,25 @@
     .history-list a { color: #ccc; text-decoration: none; }
     .history-list a:hover { text-decoration: underline; color: #fff; }
 </style>
+<script>
+    window.__gcse = {
+        parsetags: 'explicit',
+        callback: function() {
+            elementRender();
+        }
+    };
+    function elementRender() {
+        google.search.cse.element.render({
+            div: "cse-search-form",
+            tag: "searchbox-only",
+            attr: {
+                resultsUrl: window.location.href,
+                as_sitesearch: "youtube.com"
+            }
+        });
+    }
+</script>
+<script async src="https://cse.google.com/cse.js?cx=005510692277321758648:r0nge9ptruy"></script>
 </head>
 <body>
 
@@ -69,8 +88,7 @@
 
     <div id="search-area">
         <div id="search-box-wrap">
-            <script async src="https://cse.google.com/cse.js?cx=005510692277321758648:r0nge9ptruy"></script>
-            <div class="gcse-searchbox-only"></div>
+            <div id="cse-search-form"></div>
         </div>
         <div id="history-container">
             <div class="history-section">
