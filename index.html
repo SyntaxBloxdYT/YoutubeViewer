@@ -6,64 +6,121 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
+    * { box-sizing: border-box; }
     body { margin: 0; font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    #header { padding: 10px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; }
-    #main { display: flex; flex: 1; overflow: hidden; }
-    #player-area { flex: 1; display: flex; flex-direction: column; }
-    iframe { width: 100%; height: 100%; border: none; }
-    #search-area { width: 300px; background: #181818; border-left: 1px solid #333; transition: width 0.3s; display: flex; flex-direction: column; }
-    #search-area.hidden { width: 0; border-left: none; overflow: hidden; }
-    .controls { padding: 10px; background: #252525; display: flex; gap: 10px; align-items: center; }
+    #header { padding: 10px 15px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 50px; }
+    #main { display: flex; flex: 1; height: calc(100vh - 50px); overflow: hidden; position: relative; }
+    #player-area { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; }
+    iframe { width: 100%; height: 100%; border: none; background: #000; }
+    
+    #search-area { width: 320px; background: #181818; border-left: 1px solid #333; transition: transform 0.3s ease; display: flex; flex-direction: column; height: 100%; position: absolute; right: 0; top: 0; z-index: 10; }
+    #search-area.hidden { transform: translateX(100%); }
+    
+    .controls { padding: 8px 12px; background: #252525; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #333; font-size: 14px; flex-wrap: wrap; }
+    .switch-container { display: flex; align-items: center; gap: 8px; }
     .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
     .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: #2196F3; }
     input:checked + .slider:before { transform: translateX(20px); }
+    
+    .notice { font-size: 11px; color: #aaa; width: 100%; margin-top: 2px; }
+    
+    button { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+    button:hover { background: #444; }
+
+    #search-box-wrap { padding: 10px; background: #222; border-bottom: 1px solid #333; }
+    #search-results-wrap { flex: 1; overflow-y: auto; padding: 10px; }
 </style>
 </head>
 <body>
+
 <div id="header">
-    <span>YouTube Viewer</span>
-    <button onclick="document.getElementById('search-area').classList.toggle('hidden')">検索表示/非表示</button>
+    <strong>YouTube Viewer</strong>
+    <button onclick="toggleSearch()">検索枠 表示/非表示</button>
 </div>
+
 <div id="main">
     <div id="player-area">
         <div class="controls">
-            <label class="switch">
-                <input type="checkbox" id="mode-switch" checked>
-                <span class="slider"></span>
-            </label>
-            <span>No-Cookie</span>
+            <div class="switch-container">
+                <span>通常</span>
+                <label class="switch">
+                    <input type="checkbox" id="mode-switch" checked>
+                    <span class="slider"></span>
+                </label>
+                <span>No-Cookie</span>
+            </div>
             <button id="fs-btn">全画面</button>
+            <div class="notice">※No-Cookieにするとクッキー制限により広告の挙動や表示が増える場合があります。</div>
         </div>
-        <iframe id="video-frame" src="about:blank"></iframe>
+        <iframe id="video-frame" src="about:blank" allowfullscreen></iframe>
     </div>
+
     <div id="search-area">
-        <div id="search-results" style="padding: 10px;">検索結果がここに表示されます</div>
+        <div id="search-box-wrap">
+            <script>
+              (function() {
+                var cx = '005510692277321758648:r0nge9ptruy';
+                var gcse = document.createElement('script');
+                gcse.type = 'text/javascript';
+                gcse.async = true;
+                gcse.src = 'https://cse.google.com/cse.js?cx=' + cx;
+                var s = document.getElementsByTagName('script')[0];
+                s.parentNode.insertBefore(gcse, s);
+              })();
+            </script>
+            <gcse:searchbox></gcse:searchbox>
+        </div>
+        <div id="search-results-wrap">
+            <gcse:searchresults></gcse:searchresults>
+        </div>
     </div>
 </div>
 
 <script>
     const frame = document.getElementById('video-frame');
     const modeSwitch = document.getElementById('mode-switch');
+    const searchArea = document.getElementById('search-area');
 
-    function updateSrc(videoId) {
-        if (!videoId) return;
-        const base = modeSwitch.checked ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
-        frame.src = base + videoId + '?autoplay=1';
+    function toggleSearch() {
+        searchArea.classList.toggle('hidden');
+    }
+
+    function updateVideoSrc(url) {
+        if (!url) return;
+        const isNoCookie = modeSwitch.checked;
+        const base = isNoCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
+        
+        let videoId = '';
+        if (url.includes('v=')) {
+            videoId = new URL(url).searchParams.get('v');
+        } else if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1]?.split('?')[0];
+        }
+        
+        if (videoId) {
+            frame.src = base + videoId + '?autoplay=1&modestbranding=1';
+        }
     }
 
     document.getElementById('fs-btn').addEventListener('click', () => {
-        document.documentElement.requestFullscreen();
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
     });
 
-
+    // 検索結果やリンクからのクリックをフックしてプレイヤーに反映
     document.addEventListener('click', e => {
-        if (e.target.tagName === 'A' && e.target.href.includes('v=')) {
+        const target = e.target.closest('a');
+        if (!target) return;
+        const href = target.href;
+        if (href && (href.includes('youtube.com/watch') || href.includes('youtu.be/'))) {
             e.preventDefault();
-            const url = new URL(e.target.href);
-            updateSrc(url.searchParams.get('v'));
+            updateVideoSrc(href);
         }
     });
 </script>
