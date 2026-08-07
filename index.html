@@ -4,80 +4,216 @@
 <meta charset="UTF-8">
 <title>YouTube Viewer</title>
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-    body { margin: 0; font-family: sans-serif; background: #121212; color: white; display: flex; height: 100vh; overflow: hidden; }
-    #main { display: flex; flex: 1; height: 100vh; position: relative; }
-    #player-area { flex: 1; display: flex; flex-direction: column; height: 100%; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    #header { padding: 10px 15px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 50px; }
+    #main { display: flex; flex: 1; height: calc(100vh - 50px); overflow: hidden; position: relative; }
+    #player-area { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; }
     iframe { width: 100%; height: 100%; border: none; background: #000; }
-    #search-area { width: 320px; background: #181818; border-left: 1px solid #333; display: flex; flex-direction: column; transition: transform 0.3s; }
-    #search-area.hidden { display: none; }
-    .controls { padding: 10px; background: #252525; display: flex; gap: 10px; align-items: center; font-size: 13px; }
-    .histories { padding: 10px; overflow-y: auto; font-size: 12px; }
+    
+    #search-area { width: 340px; background: #181818; border-left: 1px solid #333; transition: transform 0.3s ease; display: flex; flex-direction: column; height: 100%; position: absolute; right: 0; top: 0; z-index: 10; }
+    #search-area.hidden { transform: translateX(100%); }
+    
+    .controls { padding: 8px 12px; background: #252525; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #333; font-size: 13px; flex-wrap: wrap; }
+    .switch-container { display: flex; align-items: center; gap: 8px; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #2196F3; }
+    input:checked + .slider:before { transform: translateX(20px); }
+    
+    .notice { font-size: 11px; color: #aaa; width: 100%; margin-top: 2px; }
+    
+    button { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+    button:hover { background: #444; }
+
+    #search-box-wrap { padding: 10px; background: #222; border-bottom: 1px solid #333; }
+    #history-container { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; }
+    .history-section { margin-bottom: 15px; }
+    .history-section h4 { margin: 0 0 5px 0; color: #8ab4f8; font-size: 12px; border-bottom: 1px solid #444; padding-bottom: 3px; }
+    .history-list { list-style: none; padding: 0; margin: 0; }
+    .history-list li { padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-list a { color: #ccc; text-decoration: none; }
+    .history-list a:hover { text-decoration: underline; color: #fff; }
 </style>
 </head>
 <body>
 
+<div id="header">
+    <strong>YouTube Viewer</strong>
+    <div>
+        <button onclick="clearAllHistories()" style="margin-right: 8px; background: #5a2a2a;">履歴全削除</button>
+        <button onclick="toggleSearch()">検索枠 表示/非表示</button>
+    </div>
+</div>
+
 <div id="main">
     <div id="player-area">
         <div class="controls">
-            <label><input type="checkbox" id="mode-switch"> No-Cookie</label>
-            <button onclick="toggleSearch()">検索枠</button>
-            <button onclick="clearData()">全履歴削除</button>
+            <div class="switch-container">
+                <span>通常API</span>
+                <label class="switch">
+                    <input type="checkbox" id="mode-switch">
+                    <span class="slider"></span>
+                </label>
+                <span>No-Cookie</span>
+            </div>
+            <button id="fs-btn">全画面</button>
+            <div class="notice">※No-Cookieモードにすると、プライバシー保護の仕様により広告の挙動が変化・増加する場合があります。</div>
         </div>
         <iframe id="video-frame" src="about:blank" allowfullscreen></iframe>
-        <div style="font-size:11px; color:#777; padding:5px;">※No-Cookieは広告の挙動が変化する場合があります。</div>
     </div>
 
     <div id="search-area">
-        <div style="padding:10px;"><script async src="https://cse.google.com/cse.js?cx=005510692277321758648:r0nge9ptruy"></script><gcse:searchbox></gcse:searchbox></div>
-        <div class="histories" id="history-list"><strong>再生履歴</strong><ul id="list"></ul></div>
+        <div id="search-box-wrap">
+            <script>
+              (function() {
+                var cx = '005510692277321758648:r0nge9ptruy';
+                var gcse = document.createElement('script');
+                gcse.type = 'text/javascript';
+                gcse.async = true;
+                gcse.src = 'https://cse.google.com/cse.js?cx=' + cx;
+                var s = document.getElementsByTagName('script')[0];
+                s.parentNode.insertBefore(gcse, s);
+              })();
+            </script>
+            <gcse:searchbox></gcse:searchbox>
+        </div>
+        <div id="history-container">
+            <div class="history-section">
+                <h4>動画再生履歴</h4>
+                <ul id="video-history-list" class="history-list"></ul>
+            </div>
+            <div class="history-section">
+                <h4>検索履歴</h4>
+                <ul id="search-history-list" class="history-list"></ul>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     const frame = document.getElementById('video-frame');
     const modeSwitch = document.getElementById('mode-switch');
-    const historyList = document.getElementById('list');
+    const searchArea = document.getElementById('search-area');
+    const videoHistoryList = document.getElementById('video-history-list');
+    const searchHistoryList = document.getElementById('search-history-list');
 
-    // 初期化：ストレージから設定読み込み
-    modeSwitch.checked = localStorage.getItem('noCookie') === 'true';
-    modeSwitch.addEventListener('change', () => localStorage.setItem('noCookie', modeSwitch.checked));
+    // ローカルストレージからの設定復元（デフォルトは通常API = false）
+    const savedNoCookie = localStorage.getItem('noCookie');
+    modeSwitch.checked = savedNoCookie === 'true';
 
-    function toggleSearch() { document.getElementById('search-area').classList.toggle('hidden'); }
-    function clearData() { localStorage.removeItem('history'); renderHistory(); }
+    modeSwitch.addEventListener('change', () => {
+        localStorage.setItem('noCookie', modeSwitch.checked);
+    });
 
-    function updateVideo(url) {
+    function toggleSearch() {
+        searchArea.classList.toggle('hidden');
+    }
+
+    function updateVideoSrc(url, videoId) {
+        if (!videoId) return;
         const isNoCookie = modeSwitch.checked;
         const base = isNoCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
-        const v = new URL(url).searchParams.get('v');
-        if (v) {
-            frame.src = base + v + '?autoplay=1';
-            saveHistory(url);
+        frame.src = base + videoId + '?autoplay=1&modestbranding=1';
+        saveVideoHistory(url, videoId);
+    }
+
+    function saveVideoHistory(url, videoId) {
+        let history = JSON.parse(localStorage.getItem('videoHistory') || '[]');
+        history = history.filter(item => item.videoId !== videoId);
+        history.unshift({ url, videoId, time: new Date().toLocaleTimeString() });
+        if (history.length > 30) history.pop();
+        localStorage.setItem('videoHistory', JSON.stringify(history));
+        renderHistories();
+    }
+
+    function saveSearchHistory(query) {
+        if (!query.trim()) return;
+        let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        history = history.filter(item => item !== query);
+        history.unshift(query);
+        if (history.length > 30) history.pop();
+        localStorage.setItem('searchHistory', JSON.stringify(history));
+        renderHistories();
+    }
+
+    function clearAllHistories() {
+        if (confirm('すべての再生履歴と検索履歴を削除しますか？')) {
+            localStorage.removeItem('videoHistory');
+            localStorage.removeItem('searchHistory');
+            renderHistories();
         }
     }
 
-    function saveHistory(url) {
-        let h = JSON.parse(localStorage.getItem('history') || '[]');
-        h.unshift(url);
-        localStorage.setItem('history', JSON.stringify([...new Set(h)].slice(0, 20)));
-        renderHistory();
-    }
+    function renderHistories() {
+        // 動画履歴描画
+        const vHistory = JSON.parse(localStorage.getItem('videoHistory') || '[]');
+        videoHistoryList.innerHTML = '';
+        vHistory.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="#" onclick="updateVideoSrc('${item.url}', '${item.videoId}'); return false;" title="${item.url}">[${item.time}] ${item.videoId}</a>`;
+            videoHistoryList.appendChild(li);
+        });
 
-    function renderHistory() {
-        historyList.innerHTML = '';
-        JSON.parse(localStorage.getItem('history') || '[]').forEach(url => {
-            let li = document.createElement('li');
-            li.innerHTML = `<a href="#" onclick="updateVideo('${url}'); return false;">${url.split('v=')[1]}</a>`;
-            historyList.appendChild(li);
+        // 検索履歴描画
+        const sHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        searchHistoryList.innerHTML = '';
+        sHistory.forEach(query => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="#" onclick="executeSearchQuery('${query}'); return false;">${query}</a>`;
+            searchHistoryList.appendChild(li);
         });
     }
 
-    // CSEのリンクはiframe内にあるため、windowのmessageイベントで親ページに通知させる必要がある
-    window.addEventListener('message', e => {
-        if (e.data && e.data.url) updateVideo(e.data.url);
+    function executeSearchQuery(query) {
+        const input = document.querySelector('input.gsc-input');
+        if (input) {
+            input.value = query;
+            const btn = document.querySelector('button.gsc-search-button');
+            if (btn) btn.click();
+        }
+    }
+
+    // 全画面表示ボタン
+    document.getElementById('fs-btn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
     });
 
-    renderHistory();
+    // リンククリックの監視（YouTubeリンク検出）
+    document.addEventListener('click', e => {
+        const target = e.target.closest('a');
+        if (!target) return;
+        const href = target.href;
+        if (href && (href.includes('youtube.com/watch') || href.includes('youtu.be/'))) {
+            e.preventDefault();
+            let videoId = '';
+            if (href.includes('v=')) {
+                videoId = new URL(href).searchParams.get('v');
+            } else if (href.includes('youtu.be/')) {
+                videoId = href.split('youtu.be/')[1]?.split('?')[0];
+            }
+            updateVideoSrc(href, videoId);
+        }
+    });
+
+    // Google Custom Searchの入力検知（検索履歴用）
+    document.addEventListener('submit', e => {
+        const input = e.target.querySelector('input.gsc-input');
+        if (input && input.value) {
+            saveSearchHistory(input.value);
+        }
+    });
+
+    // 初期読み込み時に履歴を描画
+    renderHistories();
 </script>
 </body>
 </html>
