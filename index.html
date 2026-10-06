@@ -5,167 +5,362 @@
 <title>YouTube Viewer</title>
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <style>
+    :root {
+        --bg: #0f0f12;
+        --panel: #17171c;
+        --panel-2: #1f1f26;
+        --line: #2c2c36;
+        --text: #f1f1f4;
+        --muted: #9a9aa8;
+        --accent: #4f8cff;
+        --accent-soft: rgba(79,140,255,.16);
+        --danger: #ff5c5c;
+        --radius: 12px;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    #header { padding: 10px 15px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 50px; flex-shrink: 0; }
-    #main { display: flex; flex: 1; height: calc(100vh - 50px); overflow: hidden; position: relative; }
-    
-    #player-area { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; }
-    iframe { width: 100%; height: 100%; border: none; background: #000; }
-    
-    #search-area { width: 420px; background: #181818; border-left: 1px solid #333; display: flex; flex-direction: column; height: 100%; flex-shrink: 0; z-index: 10; }
-    #search-area.hidden { display: none; }
-    
-    .controls { padding: 8px 12px; background: #252525; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #333; font-size: 13px; flex-wrap: wrap; flex-shrink: 0; }
-    .switch-container { display: flex; align-items: center; gap: 8px; }
-    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
-    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: #2196F3; }
-    input:checked + .slider:before { transform: translateX(20px); }
-    
-    .notice { font-size: 11px; color: #aaa; width: 100%; margin-top: 2px; }
-    
-    button { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
-    button:hover { background: #444; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; font-size: 14px; }
 
-    #search-content-wrap { flex: 1; overflow-y: auto; padding: 10px; background: #181818; }
-    #history-container { height: 160px; overflow-y: auto; padding: 10px; font-size: 12px; background: #141414; border-top: 1px solid #333; flex-shrink: 0; }
-    
-    .history-section { margin-bottom: 15px; }
-    .history-section h4 { margin: 0 0 5px 0; color: #8ab4f8; font-size: 12px; border-bottom: 1px solid #444; padding-bottom: 3px; }
-    .history-list { list-style: none; padding: 0; margin: 0; }
-    .history-list li { padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .history-list a { color: #ccc; text-decoration: none; }
-    .history-list a:hover { text-decoration: underline; color: #fff; }
+    /* ===== ヘッダー ===== */
+    #header { display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; white-space: nowrap; }
+    .logo-mark { width: 28px; height: 20px; background: #ff3b3b; border-radius: 6px; position: relative; }
+    .logo-mark::after { content: ""; position: absolute; left: 11px; top: 5px; border-left: 8px solid #fff; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+    #url-form { flex: 1; display: flex; max-width: 720px; margin: 0 auto; }
+    #url-input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-right: none; color: var(--text); padding: 9px 16px; border-radius: 999px 0 0 999px; font-size: 14px; outline: none; }
+    #url-input:focus { border-color: var(--accent); }
+    #url-form button { border-radius: 0 999px 999px 0; background: var(--accent); border: 1px solid var(--accent); color: #fff; padding: 0 20px; font-weight: 600; }
+    #url-form button:hover { filter: brightness(1.1); }
 
-    /* Google Custom Search ダークテーマ調整 */
-    .gsc-control-cse { background: transparent !important; border: none !important; padding: 0 !important; font-family: sans-serif !important; }
-    input.gsc-input { background: #333 !important; border: 1px solid #555 !important; color: white !important; }
-    .gsc-search-button-v2 { background: #444 !important; border: 1px solid #555 !important; }
-    .gs-webResult .gs-title a, .gs-promotion .gs-title a { color: #8ab4f8 !important; }
-    .gs-webResult .gs-snippet { color: #ccc !important; }
-    .gsc-results-root { background: transparent !important; }
+    button { font: inherit; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; border-radius: 8px; transition: background .15s, border-color .15s; }
+    button:hover { background: #292933; }
+    button.active { background: var(--accent-soft); border-color: var(--accent); color: #cfe0ff; }
+    button.danger { color: var(--danger); }
+
+    /* ===== メイン ===== */
+    #main { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 14px; }
+    #player-area { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+
+    #player-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    #player-box { width: 100%; height: 100%; }
+    #player-box.shorts { width: auto; max-width: 100%; aspect-ratio: 9 / 16; }
+    iframe { width: 100%; height: 100%; border: none; display: block; background: #000; }
+
+    #empty { position: absolute; color: var(--muted); text-align: center; pointer-events: none; line-height: 1.8; }
+    #empty b { display: block; font-size: 16px; color: var(--text); }
+    #player-wrap { position: relative; }
+    #player-wrap.has-video #empty { display: none; }
+
+    /* ===== コントロールバー ===== */
+    #toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); flex-shrink: 0; }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .seg button { border: none; border-radius: 0; background: transparent; color: var(--muted); }
+    .seg button.active { background: var(--accent-soft); color: #cfe0ff; }
+    .spacer { flex: 1; }
+    #open-link { color: var(--accent); text-decoration: none; font-size: 13px; padding: 0 6px; }
+    #open-link:hover { text-decoration: underline; }
+    #open-link.hidden { display: none; }
+    #hint { width: 100%; font-size: 12px; color: var(--muted); }
+
+    /* ===== サイドバー ===== */
+    #side { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    #side.hidden { display: none; }
+    #tabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    #tabs button { flex: 1; border: none; border-radius: 0; background: transparent; color: var(--muted); padding: 12px; font-weight: 600; border-bottom: 2px solid transparent; }
+    #tabs button.active { color: var(--text); border-bottom-color: var(--accent); background: transparent; }
+    .pane { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: none; }
+    .pane.show { display: block; }
+
+    /* ===== 履歴 ===== */
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+    .section-title + * { margin-bottom: 18px; }
+    .video-list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+    .video-card { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: 10px; color: var(--text); text-decoration: none; }
+    .video-card:hover { background: var(--panel-2); }
+    .thumb { position: relative; width: 112px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .badge { position: absolute; right: 4px; bottom: 4px; background: #ff3b3b; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+    .video-meta { min-width: 0; }
+    .video-meta .vid { font-size: 13px; font-family: ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .video-meta .time { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .chip { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 5px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; }
+    .chip:hover { border-color: var(--accent); }
+    .none { color: var(--muted); font-size: 13px; padding: 4px 2px 14px; }
+
+    /* ===== Google Custom Search(ダークテーマ調整) ===== */
+    .gsc-control-cse { background: transparent !important; border: none !important; padding: 0 !important; font-family: inherit !important; }
+    .gsc-search-box, table.gsc-search-box td { border: none !important; }
+    input.gsc-input { background: var(--bg) !important; border: 1px solid var(--line) !important; color: #fff !important; border-radius: 8px !important; padding: 6px 8px !important; }
+    .gsc-search-button-v2 { background: var(--accent) !important; border: 1px solid var(--accent) !important; border-radius: 8px !important; padding: 8px 12px !important; }
+    .gsc-search-button-v2 svg { fill: #fff !important; }
+    .gsc-results-wrapper-visible, .gsc-results-root, .gsc-webResult.gsc-result { background: transparent !important; border: none !important; }
+    .gsc-webResult.gsc-result { border-bottom: 1px solid var(--line) !important; padding: 10px 4px !important; }
+    .gs-webResult .gs-title, .gs-webResult .gs-title * { color: #8ab4f8 !important; font-size: 15px !important; }
+    .gs-webResult .gs-snippet, .gs-webResult .gs-snippet * { color: #c4c4cf !important; }
+    .gs-webResult div.gs-visibleUrl { color: #7fd18c !important; }
+    .gsc-cursor-page { color: #cfd0dc !important; background: var(--panel-2) !important; border-radius: 6px; }
+    .gsc-cursor-current-page { color: #fff !important; background: var(--accent) !important; }
+    .gsc-adBlock, .gsc-above-wrapper-area { display: none !important; }
+
+    /* ===== スマホ・狭い画面 ===== */
+    @media (max-width: 860px) {
+        #header { flex-wrap: wrap; gap: 8px; }
+        #url-form { order: 3; flex-basis: 100%; max-width: none; }
+        #main { flex-direction: column; padding: 10px; gap: 10px; }
+        #player-area { flex: none; height: 52%; }
+        #main.no-side #player-area { flex: 1; height: auto; }
+        #side { width: 100%; flex: 1; }
+        .thumb { width: 96px; }
+    }
 </style>
+<script>
+    // 検索実行時に履歴へ保存(CSEの公式コールバック)。CSE本体より前に定義する必要がある
+    window.__gcse = {
+        searchCallbacks: {
+            web: { starting: function (gname, query) { saveSearchHistory(query); return query; } }
+        }
+    };
+</script>
 <script async src="https://cse.google.com/cse.js?cx=005510692277321758648:r0nge9ptruy"></script>
 </head>
 <body>
 
 <div id="header">
-    <strong>YouTube Viewer</strong>
-    <div>
-        <button onclick="clearAllHistories()" style="margin-right: 8px; background: #5a2a2a;">履歴全削除</button>
-        <button onclick="toggleSearch()">検索枠 表示/非表示</button>
-    </div>
+    <div class="logo"><span class="logo-mark"></span>YouTube Viewer</div>
+    <form id="url-form">
+        <input id="url-input" type="text" placeholder="URL(通常動画・Shorts・ライブ)か動画IDを貼り付けて再生" autocomplete="off">
+        <button type="submit">再生</button>
+    </form>
+    <button id="toggle-side-btn" class="active">検索・履歴</button>
 </div>
 
 <div id="main">
     <div id="player-area">
-        <div class="controls">
-            <div class="switch-container">
-                <span>通常API</span>
-                <label class="switch">
-                    <input type="checkbox" id="mode-switch">
-                    <span class="slider"></span>
-                </label>
-                <span>No-Cookie</span>
+        <div id="player-wrap">
+            <div id="empty"><b>動画が選ばれていません</b>上のバーにURLを貼るか、右の検索から選んでください</div>
+            <div id="player-box">
+                <iframe id="video-frame" src="about:blank" title="YouTube player"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
-            <button id="fs-btn">全画面</button>
-            <div class="notice">※No-Cookieモードにすると、プライバシー保護の仕様により広告の挙動が変化・増加する場合があります。</div>
         </div>
-        <iframe id="video-frame" src="about:blank" allowfullscreen></iframe>
+
+        <div id="toolbar">
+            <div class="seg" title="表示の形">
+                <button id="shape-normal">通常</button>
+                <button id="shape-shorts">Shorts(縦)</button>
+            </div>
+            <div class="seg" title="再生モード">
+                <button id="mode-normal">通常API</button>
+                <button id="mode-nocookie">No-Cookie</button>
+            </div>
+            <button id="loop-btn">ループ</button>
+            <span class="spacer"></span>
+            <a id="open-link" class="hidden" target="_blank" rel="noopener noreferrer">YouTubeで開く ↗</a>
+            <button id="fs-btn">全画面</button>
+            <div id="hint">※No-Cookieでは広告の挙動が変わる場合があります。埋め込み禁止の動画は再生できないため、その場合は「YouTubeで開く」を使ってください。</div>
+        </div>
     </div>
 
-    <div id="search-area">
-        <div id="search-content-wrap">
-            <div class="gcse-search"></div>
+    <div id="side">
+        <div id="tabs">
+            <button id="tab-search" class="active">検索</button>
+            <button id="tab-history">履歴</button>
         </div>
-        <div id="history-container">
-            <div class="history-section">
-                <h4>動画再生履歴</h4>
-                <ul id="video-history-list" class="history-list"></ul>
-            </div>
-            <div class="history-section">
-                <h4>検索履歴</h4>
-                <ul id="search-history-list" class="history-list"></ul>
-            </div>
+        <div id="pane-search" class="pane show">
+            <div class="gcse-search" data-gname="main"></div>
+        </div>
+        <div id="pane-history" class="pane">
+            <div class="section-title"><span>動画再生履歴</span><button class="danger" id="clear-video-btn">削除</button></div>
+            <ul id="video-history-list" class="video-list"></ul>
+            <div class="section-title"><span>検索履歴</span><button class="danger" id="clear-search-btn">削除</button></div>
+            <div id="search-history-list" class="chips"></div>
         </div>
     </div>
 </div>
 
 <script>
-    const frame = document.getElementById('video-frame');
-    const modeSwitch = document.getElementById('mode-switch');
-    const searchArea = document.getElementById('search-area');
-    const videoHistoryList = document.getElementById('video-history-list');
-    const searchHistoryList = document.getElementById('search-history-list');
+    const $ = id => document.getElementById(id);
+    const frame = $('video-frame');
+    const playerBox = $('player-box');
+    const playerWrap = $('player-wrap');
+    const side = $('side');
 
-    const savedNoCookie = localStorage.getItem('noCookie');
-    modeSwitch.checked = savedNoCookie === 'true';
+    // ---------- localStorage(使えない環境でも落ちないように) ----------
+    function load(key, fallback) {
+        try { const v = JSON.parse(localStorage.getItem(key)); return v === null || v === undefined ? fallback : v; } catch (e) { return fallback; }
+    }
+    function save(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    }
 
-    modeSwitch.addEventListener('change', () => {
-        localStorage.setItem('noCookie', modeSwitch.checked);
+    // ---------- 状態 ----------
+    let current = null;                     // { id, short }
+    let noCookie = load('noCookie', false);
+    let loopOn = load('loop', false);
+    let shortsDefault = load('shortsMode', false);   // ID直指定のときの形
+
+    function refreshControls() {
+        const isShort = current ? current.short : shortsDefault;
+        $('shape-normal').classList.toggle('active', !isShort);
+        $('shape-shorts').classList.toggle('active', isShort);
+        $('mode-normal').classList.toggle('active', !noCookie);
+        $('mode-nocookie').classList.toggle('active', noCookie);
+        $('loop-btn').classList.toggle('active', loopOn);
+        playerBox.classList.toggle('shorts', isShort);
+        $('toggle-side-btn').classList.toggle('active', !side.classList.contains('hidden'));
+        $('main').classList.toggle('no-side', side.classList.contains('hidden'));
+    }
+
+    function setShape(short) {
+        shortsDefault = short; save('shortsMode', short);
+        if (current) current.short = short;
+        refreshControls();
+    }
+    $('shape-normal').addEventListener('click', () => setShape(false));
+    $('shape-shorts').addEventListener('click', () => setShape(true));
+
+    function setMode(nc) {
+        noCookie = nc; save('noCookie', nc);
+        refreshControls();
+        if (current && frame.src !== 'about:blank') play(current.id, current.short);
+    }
+    $('mode-normal').addEventListener('click', () => setMode(false));
+    $('mode-nocookie').addEventListener('click', () => setMode(true));
+
+    $('loop-btn').addEventListener('click', () => {
+        loopOn = !loopOn; save('loop', loopOn);
+        refreshControls();
+        if (current && frame.src !== 'about:blank') play(current.id, current.short);
     });
 
-    function toggleSearch() {
-        searchArea.classList.toggle('hidden');
+    // ---------- URL解析(通常 / Shorts / live / embed / youtu.be / モバイル / ID直指定) ----------
+    function parseYouTube(input) {
+        if (!input) return null;
+        input = input.trim();
+        if (/^[\w-]{11}$/.test(input)) return { id: input, short: shortsDefault };
+        let u;
+        try { u = new URL(/^https?:\/\//i.test(input) ? input : 'https://' + input); } catch (e) { return null; }
+
+        // Google検索の中継URL(/url?q=...)を展開
+        if (/(^|\.)google\./.test(u.hostname) && u.pathname === '/url') {
+            const real = u.searchParams.get('q') || u.searchParams.get('url');
+            return real ? parseYouTube(real) : null;
+        }
+
+        const host = u.hostname.replace(/^www\.|^m\./, '');
+        let id = null, short = false;
+        if (host === 'youtu.be') {
+            id = u.pathname.split('/')[1];
+        } else if (host === 'youtube.com' || host === 'youtube-nocookie.com' || host === 'music.youtube.com') {
+            const parts = u.pathname.split('/').filter(Boolean);
+            if (parts[0] === 'watch') id = u.searchParams.get('v');
+            else if (['shorts', 'embed', 'live', 'v'].includes(parts[0])) id = parts[1];
+            short = parts[0] === 'shorts';
+        }
+        if (!id || !/^[\w-]{11}$/.test(id)) return null;
+        return { id, short };
     }
 
-    function updateVideoSrc(url, videoId) {
-        if (!videoId) return;
-        const isNoCookie = modeSwitch.checked;
-        const base = isNoCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
-        frame.src = base + videoId + '?autoplay=1&modestbranding=1';
-        saveVideoHistory(url, videoId);
+    // ---------- 再生 ----------
+    function play(id, short) {
+        if (!id) return;
+        current = { id, short: !!short };
+        shortsDefault = current.short; save('shortsMode', shortsDefault);   // 見ている形に合わせる
+
+        const base = noCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
+        const params = new URLSearchParams({ autoplay: '1', modestbranding: '1', rel: '0', playsinline: '1' });
+        if (loopOn) { params.set('loop', '1'); params.set('playlist', id); }   // loopにはplaylist指定が必要
+        frame.src = base + id + '?' + params.toString();
+
+        const link = $('open-link');
+        link.href = 'https://www.youtube.com/' + (current.short ? 'shorts/' : 'watch?v=') + id;
+        link.classList.remove('hidden');
+        playerWrap.classList.add('has-video');
+
+        save('lastVideo', current);
+        saveVideoHistory(id, current.short);
+        refreshControls();
     }
 
-    function saveVideoHistory(url, videoId) {
-        let history = JSON.parse(localStorage.getItem('videoHistory') || '[]');
-        history = history.filter(item => item.videoId !== videoId);
-        history.unshift({ url, videoId, time: new Date().toLocaleTimeString() });
-        if (history.length > 30) history.pop();
-        localStorage.setItem('videoHistory', JSON.stringify(history));
+    $('url-form').addEventListener('submit', e => {
+        e.preventDefault();
+        const parsed = parseYouTube($('url-input').value);
+        if (!parsed) { alert('YouTubeのURLか動画ID(11文字)を入力してください'); return; }
+        play(parsed.id, parsed.short);
+        $('url-input').value = '';
+    });
+
+    // ---------- 履歴 ----------
+    function saveVideoHistory(id, short) {
+        let h = load('videoHistory', []);
+        h = h.filter(x => x.id !== id);
+        h.unshift({ id, short: !!short, time: new Date().toLocaleString('ja-JP') });
+        save('videoHistory', h.slice(0, 30));
         renderHistories();
     }
-
     function saveSearchHistory(query) {
         if (!query || !query.trim()) return;
-        let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-        history = history.filter(item => item !== query);
-        history.unshift(query);
-        if (history.length > 30) history.pop();
-        localStorage.setItem('searchHistory', JSON.stringify(history));
+        let h = load('searchHistory', []);
+        h = h.filter(x => x !== query);
+        h.unshift(query);
+        save('searchHistory', h.slice(0, 30));
         renderHistories();
     }
-
-    function clearAllHistories() {
-        if (confirm('すべての再生履歴と検索履歴を削除しますか？')) {
-            localStorage.removeItem('videoHistory');
-            localStorage.removeItem('searchHistory');
-            renderHistories();
-        }
-    }
+    $('clear-video-btn').addEventListener('click', () => {
+        if (confirm('動画再生履歴をすべて削除しますか？')) { save('videoHistory', []); renderHistories(); }
+    });
+    $('clear-search-btn').addEventListener('click', () => {
+        if (confirm('検索履歴をすべて削除しますか？')) { save('searchHistory', []); renderHistories(); }
+    });
 
     function renderHistories() {
-        const vHistory = JSON.parse(localStorage.getItem('videoHistory') || '[]');
-        videoHistoryList.innerHTML = '';
-        vHistory.forEach(item => {
+        // innerHTMLを使わずDOMで組み立てる(引用符を含む検索語でも壊れず、XSSも防げる)
+        const vList = $('video-history-list');
+        vList.textContent = '';
+        const vh = load('videoHistory', []);
+        if (!vh.length) { const p = document.createElement('li'); p.className = 'none'; p.textContent = 'まだ再生した動画はありません'; vList.appendChild(p); }
+        vh.forEach(item => {
             const li = document.createElement('li');
-            li.innerHTML = `<a href="#" onclick="updateVideoSrc('${item.url}', '${item.videoId}'); return false;" title="${item.url}">[${item.time}] ${item.videoId}</a>`;
-            videoHistoryList.appendChild(li);
+            const a = document.createElement('a');
+            a.href = '#'; a.className = 'video-card';
+            a.addEventListener('click', e => { e.preventDefault(); play(item.id, item.short); });
+
+            const thumb = document.createElement('div'); thumb.className = 'thumb';
+            const img = document.createElement('img');
+            img.src = 'https://i.ytimg.com/vi/' + item.id + '/mqdefault.jpg'; img.loading = 'lazy'; img.alt = '';
+            thumb.appendChild(img);
+            if (item.short) { const b = document.createElement('span'); b.className = 'badge'; b.textContent = 'Shorts'; thumb.appendChild(b); }
+
+            const meta = document.createElement('div'); meta.className = 'video-meta';
+            const vid = document.createElement('div'); vid.className = 'vid'; vid.textContent = item.id;
+            const tm = document.createElement('div'); tm.className = 'time'; tm.textContent = item.time;
+            meta.append(vid, tm);
+
+            a.append(thumb, meta);
+            li.appendChild(a);
+            vList.appendChild(li);
         });
 
-        const sHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-        searchHistoryList.innerHTML = '';
-        sHistory.forEach(query => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a href="#" onclick="executeSearchQuery('${query}'); return false;">${query}</a>`;
-            searchHistoryList.appendChild(li);
+        const sList = $('search-history-list');
+        sList.textContent = '';
+        const sh = load('searchHistory', []);
+        if (!sh.length) { const p = document.createElement('div'); p.className = 'none'; p.textContent = 'まだ検索していません'; sList.appendChild(p); }
+        sh.forEach(query => {
+            const a = document.createElement('a');
+            a.href = '#'; a.className = 'chip'; a.textContent = query;
+            a.addEventListener('click', e => { e.preventDefault(); executeSearchQuery(query); });
+            sList.appendChild(a);
         });
     }
 
     function executeSearchQuery(query) {
+        showTab('search');
+        try {
+            const el = google.search.cse.element.getElement('main');
+            if (el) { el.execute(query); return; }
+        } catch (e) {}
         const input = document.querySelector('input.gsc-input');
         if (input) {
             input.value = query;
@@ -174,46 +369,54 @@
         }
     }
 
-    document.getElementById('fs-btn').addEventListener('click', () => {
+    // ---------- 検索結果のクリックを横取り(イベント委譲。CSEが後から描画しても効く) ----------
+    $('pane-search').addEventListener('click', e => {
+        const link = e.target.closest('a');
+        if (!link) return;
+        const url = link.getAttribute('data-ctorig') || link.href;
+        const parsed = parseYouTube(url);
+        if (parsed) {
+            e.preventDefault();
+            e.stopPropagation();
+            play(parsed.id, parsed.short);
+        }
+    }, true);
+
+    // ---------- タブ・表示切替 ----------
+    function showTab(name) {
+        $('tab-search').classList.toggle('active', name === 'search');
+        $('tab-history').classList.toggle('active', name === 'history');
+        $('pane-search').classList.toggle('show', name === 'search');
+        $('pane-history').classList.toggle('show', name === 'history');
+        if (side.classList.contains('hidden')) { side.classList.remove('hidden'); refreshControls(); }
+    }
+    $('tab-search').addEventListener('click', () => showTab('search'));
+    $('tab-history').addEventListener('click', () => showTab('history'));
+    $('toggle-side-btn').addEventListener('click', () => { side.classList.toggle('hidden'); refreshControls(); });
+
+    $('fs-btn').addEventListener('click', () => {
+        // ページ全体ではなくプレイヤーだけを全画面にする
         if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
+            (frame.requestFullscreen || frame.webkitRequestFullscreen || document.documentElement.requestFullscreen).call(frame);
         } else {
             document.exitFullscreen();
         }
     });
 
-    // 検索結果内のリンクを監視し、YouTubeリンクなら外部に飛ばさずiframeで再生する
-    const observer = new MutationObserver(() => {
-        const links = document.querySelectorAll('#search-area a');
-        links.forEach(link => {
-            if (link.dataset.intercepted) return;
-            const href = link.href;
-            if (href && (href.includes('youtube.com/watch') || href.includes('youtu.be/'))) {
-                link.dataset.intercepted = 'true';
-                link.addEventListener('click', e => {
-                    e.preventDefault();
-                    let videoId = '';
-                    if (href.includes('v=')) {
-                        videoId = new URL(href).searchParams.get('v');
-                    } else if (href.includes('youtu.be/')) {
-                        videoId = href.split('youtu.be/')[1]?.split('?')[0];
-                    }
-                    updateVideoSrc(href, videoId);
-                });
-            }
-        });
-    });
-
-    observer.observe(document.getElementById('search-area'), { childList: true, subtree: true });
-
-    document.addEventListener('submit', e => {
-        const input = e.target.querySelector('input.gsc-input');
-        if (input && input.value) {
-            saveSearchHistory(input.value);
-        }
-    });
-
+    // ---------- 初期化 ----------
     renderHistories();
+    refreshControls();
+    const last = load('lastVideo', null);
+    if (last && last.id) {
+        // 前回の動画をそのまま表示(自動再生はしない)
+        current = last;
+        const base = noCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
+        frame.src = base + last.id + '?modestbranding=1&rel=0&playsinline=1';
+        $('open-link').href = 'https://www.youtube.com/' + (last.short ? 'shorts/' : 'watch?v=') + last.id;
+        $('open-link').classList.remove('hidden');
+        playerWrap.classList.add('has-video');
+        refreshControls();
+    }
 </script>
 </body>
 </html>
