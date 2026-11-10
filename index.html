@@ -1,128 +1,153 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>YouTube Viewer</title>
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<style>
-    :root {
-        --bg: #0f0f12;
-        --panel: #17171c;
-        --panel-2: #1f1f26;
-        --line: #2c2c36;
-        --text: #f1f1f4;
-        --muted: #9a9aa8;
-        --accent: #4f8cff;
-        --accent-soft: rgba(79,140,255,.16);
-        --danger: #ff5c5c;
-        --radius: 12px;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { margin: 0; font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; font-size: 14px; }
-
-    /* ===== ヘッダー ===== */
-    #header { display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-shrink: 0; }
-    .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; white-space: nowrap; }
-    .logo-mark { width: 28px; height: 20px; background: #ff3b3b; border-radius: 6px; position: relative; }
-    .logo-mark::after { content: ""; position: absolute; left: 11px; top: 5px; border-left: 8px solid #fff; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
-    #url-form { flex: 1; display: flex; max-width: 720px; margin: 0 auto; }
-    #url-input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-right: none; color: var(--text); padding: 9px 16px; border-radius: 999px 0 0 999px; font-size: 14px; outline: none; }
-    #url-input:focus { border-color: var(--accent); }
-    #url-form button { border-radius: 0 999px 999px 0; background: var(--accent); border: 1px solid var(--accent); color: #fff; padding: 0 20px; font-weight: 600; }
-    #url-form button:hover { filter: brightness(1.1); }
-
-    button { font: inherit; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; border-radius: 8px; transition: background .15s, border-color .15s; }
-    button:hover { background: #292933; }
-    button.active { background: var(--accent-soft); border-color: var(--accent); color: #cfe0ff; }
-    button.danger { color: var(--danger); }
-
-    /* ===== メイン ===== */
-    #main { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 14px; }
-    #player-area { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
-
-    #player-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-    #player-box { width: 100%; height: 100%; }
-    #player-box.shorts { width: auto; max-width: 100%; aspect-ratio: 9 / 16; }
-    iframe { width: 100%; height: 100%; border: none; display: block; background: #000; }
-
-    #empty { position: absolute; color: var(--muted); text-align: center; pointer-events: none; line-height: 1.8; }
-    #empty b { display: block; font-size: 16px; color: var(--text); }
-    #player-wrap { position: relative; }
-    #player-wrap.has-video #empty { display: none; }
-
-    /* ===== コントロールバー ===== */
-    #toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); flex-shrink: 0; }
-    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-    .seg button { border: none; border-radius: 0; background: transparent; color: var(--muted); }
-    .seg button.active { background: var(--accent-soft); color: #cfe0ff; }
-    .spacer { flex: 1; }
-    #open-link { color: var(--accent); text-decoration: none; font-size: 13px; padding: 0 6px; }
-    #open-link:hover { text-decoration: underline; }
-    #open-link.hidden { display: none; }
-    #hint { width: 100%; font-size: 12px; color: var(--muted); }
-
-    /* ===== サイドバー ===== */
-    #side { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-    #side.hidden { display: none; }
-    #tabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
-    #tabs button { flex: 1; border: none; border-radius: 0; background: transparent; color: var(--muted); padding: 12px; font-weight: 600; border-bottom: 2px solid transparent; }
-    #tabs button.active { color: var(--text); border-bottom-color: var(--accent); background: transparent; }
-    .pane { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: none; }
-    .pane.show { display: block; }
-
-    /* ===== 履歴 ===== */
-    .section-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
-    .section-title + * { margin-bottom: 18px; }
-    .video-list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
-    .video-card { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: 10px; color: var(--text); text-decoration: none; }
-    .video-card:hover { background: var(--panel-2); }
-    .thumb { position: relative; width: 112px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .badge { position: absolute; right: 4px; bottom: 4px; background: #ff3b3b; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
-    .video-meta { min-width: 0; }
-    .video-meta .vid { font-size: 13px; font-family: ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .video-meta .time { font-size: 11px; color: var(--muted); margin-top: 3px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-    .chip { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 5px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; }
-    .chip:hover { border-color: var(--accent); }
-    .none { color: var(--muted); font-size: 13px; padding: 4px 2px 14px; }
-
-    /* ===== Google Custom Search(ダークテーマ調整) ===== */
-    .gsc-control-cse { background: transparent !important; border: none !important; padding: 0 !important; font-family: inherit !important; }
-    .gsc-search-box, table.gsc-search-box td { border: none !important; }
-    input.gsc-input { background: var(--bg) !important; border: 1px solid var(--line) !important; color: #fff !important; border-radius: 8px !important; padding: 6px 8px !important; }
-    .gsc-search-button-v2 { background: var(--accent) !important; border: 1px solid var(--accent) !important; border-radius: 8px !important; padding: 8px 12px !important; }
-    .gsc-search-button-v2 svg { fill: #fff !important; }
-    .gsc-results-wrapper-visible, .gsc-results-root, .gsc-webResult.gsc-result { background: transparent !important; border: none !important; }
-    .gsc-webResult.gsc-result { border-bottom: 1px solid var(--line) !important; padding: 10px 4px !important; }
-    .gs-webResult .gs-title, .gs-webResult .gs-title * { color: #8ab4f8 !important; font-size: 15px !important; }
-    .gs-webResult .gs-snippet, .gs-webResult .gs-snippet * { color: #c4c4cf !important; }
-    .gs-webResult div.gs-visibleUrl { color: #7fd18c !important; }
-    .gsc-cursor-page { color: #cfd0dc !important; background: var(--panel-2) !important; border-radius: 6px; }
-    .gsc-cursor-current-page { color: #fff !important; background: var(--accent) !important; }
-    .gsc-adBlock, .gsc-above-wrapper-area { display: none !important; }
-
-    /* ===== スマホ・狭い画面 ===== */
-    @media (max-width: 860px) {
-        #header { flex-wrap: wrap; gap: 8px; }
-        #url-form { order: 3; flex-basis: 100%; max-width: none; }
-        #main { flex-direction: column; padding: 10px; gap: 10px; }
-        #player-area { flex: none; height: 52%; }
-        #main.no-side #player-area { flex: 1; height: auto; }
-        #side { width: 100%; flex: 1; }
-        .thumb { width: 96px; }
-    }
-</style>
-<script>
-    // 検索実行時に履歴へ保存(CSEの公式コールバック)。CSE本体より前に定義する必要がある
-    window.__gcse = {
-        searchCallbacks: {
-            web: { starting: function (gname, query) { saveSearchHistory(query); return query; } }
+    <meta charset="UTF-8">
+    <title>YouTube Viewer</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <style>
+        :root {
+            --bg: #0f0f12;
+            --panel: #17171c;
+            --panel-2: #1f1f26;
+            --line: #2c2c36;
+            --text: #f1f1f4;
+            --muted: #9a9aa8;
+            --accent: #4f8cff;
+            --accent-soft: rgba(79,140,255,.16);
+            --danger: #ff5c5c;
+            --radius: 12px;
         }
-    };
-</script>
-<script async src="https://cse.google.com/cse.js?cx=005510692277321758648:r0nge9ptruy"></script>
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { margin: 0; font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+
+        /* ===== ヘッダー ===== */
+        #header { display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-shrink: 0; }
+        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; white-space: nowrap; }
+        .logo-mark { width: 28px; height: 20px; background: #ff3b3b; border-radius: 6px; position: relative; }
+        .logo-mark::after { content: ""; position: absolute; left: 11px; top: 5px; border-left: 8px solid #fff; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+        #url-form { flex: 1; display: flex; max-width: 720px; margin: 0 auto; }
+        #url-input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-right: none; color: var(--text); padding: 9px 16px; border-radius: 999px 0 0 999px; font-size: 14px; }
+        #url-input:focus { border-color: var(--accent); }
+        #url-form button { border-radius: 0 999px 999px 0; background: var(--accent); border: 1px solid var(--accent); color: #fff; padding: 0 20px; font-weight: 600; }
+        #url-form button:hover { filter: brightness(1.1); }
+
+        button { font: inherit; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; border-radius: 8px; transition: background .15s, border-color .15s; }
+        button:hover { background: #292933; }
+        button.active { background: var(--accent-soft); border-color: var(--accent); color: #cfe0ff; }
+        button.danger { color: var(--danger); }
+
+        /* ===== メイン ===== */
+        #main { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 14px; }
+        #player-area { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+
+        #player-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; position: relative; }
+        #player-box { width: 100%; height: 100%; }
+        #player-box.shorts { width: auto; max-width: 100%; aspect-ratio: 9 / 16; }
+        iframe { width: 100%; height: 100%; border: none; display: block; background: #000; }
+
+        #empty { position: absolute; color: var(--muted); text-align: center; pointer-events: none; line-height: 1.8; }
+        #empty b { display: block; font-size: 16px; color: var(--text); }
+        #player-wrap.has-video #empty { display: none; }
+
+        /* ===== コントロールバー ===== */
+        #toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); flex-shrink: 0; }
+        .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        .seg button { border: none; border-radius: 0; background: transparent; color: var(--muted); }
+        .seg button.active { background: var(--accent-soft); color: #cfe0ff; }
+        .spacer { flex: 1; }
+        #open-link { color: var(--accent); text-decoration: none; font-size: 13px; padding: 0 6px; }
+        #open-link:hover { text-decoration: underline; }
+        #open-link.hidden { display: none; }
+        #hint { width: 100%; font-size: 12px; color: var(--muted); }
+
+        /* ===== サイドバー ===== */
+        #side { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+        #side.hidden { display: none; }
+        #tabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+        #tabs button { flex: 1; border: none; border-radius: 0; background: transparent; color: var(--muted); padding: 12px; font-weight: 600; border-bottom: 2px solid transparent; }
+        #tabs button.active { color: var(--text); border-bottom-color: var(--accent); background: transparent; }
+        .pane { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: none; }
+        .pane.show { display: block; }
+
+        /* ===== 履歴 ===== */
+        .section-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+        .section-title + * { margin-bottom: 18px; }
+        .video-list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+        .video-card { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: 10px; color: var(--text); text-decoration: none; }
+        .video-card:hover { background: var(--panel-2); }
+        .thumb { position: relative; width: 112px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .badge { position: absolute; right: 4px; bottom: 4px; background: #ff3b3b; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+        .video-meta { min-width: 0; }
+        .video-meta .vid { font-size: 13px; font-family: ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .video-meta .time { font-size: 11px; color: var(--muted); margin-top: 3px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+        .chip { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 5px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; }
+        .chip:hover { border-color: var(--accent); }
+        .none { color: var(--muted); font-size: 13px; padding: 4px 2px 14px; }
+
+        /* ===== Shorts風スクロール ===== */
+        #shorts-panel { margin: 14px 0 0; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+        .shorts-feed { display: grid; gap: 10px; max-height: 240px; overflow-y: auto; padding-right: 4px; scroll-snap-type: y proximity; }
+        .shorts-card { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border-radius: 10px; border: 1px solid transparent; background: var(--panel-2); color: var(--text); text-align: left; scroll-snap-align: start; }
+        .shorts-card.active { border-color: var(--accent); background: var(--accent-soft); }
+        .shorts-card img { width: 118px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+        .shorts-card .meta { min-width: 0; }
+        .shorts-card .tag { display: inline-block; background: #ff3b3b; color: white; font-size: 10px; border-radius: 999px; padding: 2px 6px; margin-bottom: 6px; font-weight: 700; }
+        .shorts-card .vid-id { font-size: 12px; font-family: ui-monospace, Consolas, monospace; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* ===== プレイリスト ===== */
+        .playlist-form { display: grid; gap: 8px; }
+        .playlist-form textarea {
+            width: 100%; min-height: 86px; resize: vertical; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 10px; padding: 10px 12px; font: inherit;
+        }
+        .playlist-actions { display: flex; gap: 8px; }
+        .playlist-actions button { flex: 1; }
+        .playlist-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+        .playlist-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+        .playlist-item.active { border-color: var(--accent); background: var(--accent-soft); }
+        .playlist-item .playlist-main { flex: 1; min-width: 0; }
+        .playlist-item .playlist-title { font-size: 12px; font-family: ui-monospace, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .playlist-item .playlist-meta { font-size: 10px; color: var(--muted); margin-top: 3px; }
+        .playlist-item .mini-btn { padding: 5px 7px; font-size: 12px; }
+
+        /* ===== Google Custom Search(ダークテーマ調整) ===== */
+        .gsc-control-cse { background: transparent !important; border: none !important; padding: 0 !important; font-family: inherit !important; }
+        .gsc-search-box, table.gsc-search-box td { border: none !important; }
+        input.gsc-input { background: var(--bg) !important; border: 1px solid var(--line) !important; color: #fff !important; border-radius: 8px !important; padding: 6px 8px !important; }
+        .gsc-search-button-v2 { background: var(--accent) !important; border: 1px solid var(--accent) !important; border-radius: 8px !important; padding: 8px 12px !important; }
+        .gsc-search-button-v2 svg { fill: #fff !important; }
+        .gsc-results-wrapper-visible, .gsc-results-root, .gsc-webResult.gsc-result { background: transparent !important; border: none !important; }
+        .gsc-webResult.gsc-result { border-bottom: 1px solid var(--line) !important; padding: 10px 4px !important; }
+        .gs-webResult .gs-title, .gs-webResult .gs-title * { color: #8ab4f8 !important; font-size: 15px !important; }
+        .gs-webResult .gs-snippet, .gs-webResult .gs-snippet * { color: #c4c4cf !important; }
+        .gs-webResult div.gs-visibleUrl { color: #7fd18c !important; }
+        .gsc-cursor-page { color: #cfd0dc !important; background: var(--panel-2) !important; border-radius: 6px; }
+        .gsc-cursor-current-page { color: #fff !important; background: var(--accent) !important; }
+        .gsc-adBlock, .gsc-above-wrapper-area { display: none !important; }
+
+        /* ===== スマホ・狭い画面 ===== */
+        @media (max-width: 860px) {
+            body { overflow: auto; }
+            #header { flex-wrap: wrap; gap: 8px; }
+            #url-form { order: 3; flex-basis: 100%; max-width: none; }
+            #main { flex-direction: column; padding: 10px; gap: 10px; }
+            #player-area { flex: none; height: 52%; }
+            #main.no-side #player-area { flex: 1; height: auto; }
+            #side { width: 100%; flex: 1; }
+            .thumb { width: 96px; }
+        }
+    </style>
+    <script>
+        // 検索実行時に履歴へ保存(CSEの公式コールバック)。CSE本体より前に定義する必要がある
+        window.__gcse = {
+            searchCallbacks: {
+                web: { starting: function (gname, query) { saveSearchHistory(query); return query; } }
+            }
+        };
+    </script>
+    <script async src="https://cse.google.com/cse.js?cx=005510692277321758648:r0nge9ptruy"></script>
 </head>
 <body>
 
@@ -159,7 +184,15 @@
             <span class="spacer"></span>
             <a id="open-link" class="hidden" target="_blank" rel="noopener noreferrer">YouTubeで開く ↗</a>
             <button id="fs-btn">全画面</button>
-            <div id="hint">※No-Cookieでは広告の挙動が変わる場合があります。埋め込み禁止の動画は再生できないため、その場合は「YouTubeで開く」を使ってください。</div>
+            <div id="hint">※No-Cookieでは広告の挙動が変わる場合があります。埋め込み禁止の動画は再生できないため、その場合は「YouTubeで開く」を開いて視聴してください。</div>
+        </div>
+
+        <div id="shorts-panel">
+            <div class="section-title">
+                <span>Shorts風スクロール</span>
+                <button id="shorts-autoplay-btn" class="active">自動次再生</button>
+            </div>
+            <div id="shorts-feed" class="shorts-feed" aria-live="polite"></div>
         </div>
     </div>
 
@@ -172,6 +205,16 @@
             <div class="gcse-search" data-gname="main"></div>
         </div>
         <div id="pane-history" class="pane">
+            <div class="section-title"><span>プレイリスト</span><button class="danger" id="clear-playlist-btn">削除</button></div>
+            <form id="playlist-form" class="playlist-form">
+                <textarea id="playlist-input" placeholder="YouTubeのURLや動画IDを複数入力（改行/カンマ区切り可）"></textarea>
+                <div class="playlist-actions">
+                    <button type="submit">追加</button>
+                    <button type="button" id="play-next-btn">次へ</button>
+                </div>
+            </form>
+            <ul id="playlist-list" class="playlist-list"></ul>
+
             <div class="section-title"><span>動画再生履歴</span><button class="danger" id="clear-video-btn">削除</button></div>
             <ul id="video-history-list" class="video-list"></ul>
             <div class="section-title"><span>検索履歴</span><button class="danger" id="clear-search-btn">削除</button></div>
@@ -196,10 +239,13 @@
     }
 
     // ---------- 状態 ----------
-    let current = null;                     // { id, short }
+    let current = null;
     let noCookie = load('noCookie', false);
     let loopOn = load('loop', false);
-    let shortsDefault = load('shortsMode', false);   // ID直指定のときの形
+    let shortsDefault = load('shortsMode', false);
+    let autoNextEnabled = load('autoNextEnabled', true);
+    let playlist = load('playlistQueue', []);
+    let currentPlaylistIndex = -1;
 
     function refreshControls() {
         const isShort = current ? current.short : shortsDefault;
@@ -208,6 +254,7 @@
         $('mode-normal').classList.toggle('active', !noCookie);
         $('mode-nocookie').classList.toggle('active', noCookie);
         $('loop-btn').classList.toggle('active', loopOn);
+        $('shorts-autoplay-btn').classList.toggle('active', autoNextEnabled);
         playerBox.classList.toggle('shorts', isShort);
         $('toggle-side-btn').classList.toggle('active', !side.classList.contains('hidden'));
         $('main').classList.toggle('no-side', side.classList.contains('hidden'));
@@ -233,6 +280,12 @@
         loopOn = !loopOn; save('loop', loopOn);
         refreshControls();
         if (current && frame.src !== 'about:blank') play(current.id, current.short);
+    });
+
+    $('shorts-autoplay-btn').addEventListener('click', () => {
+        autoNextEnabled = !autoNextEnabled;
+        save('autoNextEnabled', autoNextEnabled);
+        refreshControls();
     });
 
     // ---------- URL解析(通常 / Shorts / live / embed / youtu.be / モバイル / ID直指定) ----------
@@ -263,17 +316,20 @@
         return { id, short };
     }
 
+    function buildYouTubeEmbedUrl(id, short) {
+        const base = noCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
+        const params = new URLSearchParams({ autoplay: '1', modestbranding: '1', rel: '0', playsinline: '1', enablejsapi: '1', origin: window.location.origin });
+        if (loopOn) { params.set('loop', '1'); params.set('playlist', id); }
+        return base + id + '?' + params.toString();
+    }
+
     // ---------- 再生 ----------
     function play(id, short) {
         if (!id) return;
         current = { id, short: !!short };
-        shortsDefault = current.short; save('shortsMode', shortsDefault);   // 見ている形に合わせる
+        shortsDefault = current.short; save('shortsMode', shortsDefault);
 
-        const base = noCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
-        const params = new URLSearchParams({ autoplay: '1', modestbranding: '1', rel: '0', playsinline: '1' });
-        if (loopOn) { params.set('loop', '1'); params.set('playlist', id); }   // loopにはplaylist指定が必要
-        frame.src = base + id + '?' + params.toString();
-
+        frame.src = buildYouTubeEmbedUrl(id, current.short);
         const link = $('open-link');
         link.href = 'https://www.youtube.com/' + (current.short ? 'shorts/' : 'watch?v=') + id;
         link.classList.remove('hidden');
@@ -282,12 +338,15 @@
         save('lastVideo', current);
         saveVideoHistory(id, current.short);
         refreshControls();
+        renderShortsFeed();
+        renderPlaylist();
     }
 
     $('url-form').addEventListener('submit', e => {
         e.preventDefault();
         const parsed = parseYouTube($('url-input').value);
         if (!parsed) { alert('YouTubeのURLか動画ID(11文字)を入力してください'); return; }
+        currentPlaylistIndex = -1;
         play(parsed.id, parsed.short);
         $('url-input').value = '';
     });
@@ -316,7 +375,6 @@
     });
 
     function renderHistories() {
-        // innerHTMLを使わずDOMで組み立てる(引用符を含む検索語でも壊れず、XSSも防げる)
         const vList = $('video-history-list');
         vList.textContent = '';
         const vh = load('videoHistory', []);
@@ -325,7 +383,7 @@
             const li = document.createElement('li');
             const a = document.createElement('a');
             a.href = '#'; a.className = 'video-card';
-            a.addEventListener('click', e => { e.preventDefault(); play(item.id, item.short); });
+            a.addEventListener('click', e => { e.preventDefault(); currentPlaylistIndex = -1; play(item.id, item.short); });
 
             const thumb = document.createElement('div'); thumb.className = 'thumb';
             const img = document.createElement('img');
@@ -378,6 +436,7 @@
         if (parsed) {
             e.preventDefault();
             e.stopPropagation();
+            currentPlaylistIndex = -1;
             play(parsed.id, parsed.short);
         }
     }, true);
@@ -395,7 +454,6 @@
     $('toggle-side-btn').addEventListener('click', () => { side.classList.toggle('hidden'); refreshControls(); });
 
     $('fs-btn').addEventListener('click', () => {
-        // ページ全体ではなくプレイヤーだけを全画面にする
         if (!document.fullscreenElement) {
             (frame.requestFullscreen || frame.webkitRequestFullscreen || document.documentElement.requestFullscreen).call(frame);
         } else {
@@ -403,15 +461,179 @@
         }
     });
 
+    // ---------- プレイリスト ----------
+    function savePlaylist() {
+        save('playlistQueue', playlist);
+        renderPlaylist();
+        renderShortsFeed();
+    }
+
+    function addToPlaylist(rawText) {
+        const entries = (rawText || '').split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+        if (!entries.length) return;
+
+        let added = 0;
+        entries.forEach(entry => {
+            const parsed = parseYouTube(entry);
+            if (!parsed) return;
+            const already = playlist.some(item => item.id === parsed.id);
+            if (!already) {
+                playlist.push({ id: parsed.id, short: !!parsed.short, time: new Date().toLocaleString('ja-JP') });
+                added++;
+            }
+        });
+
+        if (added === 0) { alert('追加できるURLやIDがありませんでした'); return; }
+        savePlaylist();
+        if (currentPlaylistIndex === -1 && playlist.length) {
+            playPlaylistAt(0);
+        }
+    }
+
+    function renderPlaylist() {
+        const list = $('playlist-list');
+        list.textContent = '';
+        if (!playlist.length) {
+            const item = document.createElement('li');
+            item.className = 'none';
+            item.textContent = 'まだプレイリストに動画がありません';
+            list.appendChild(item);
+            return;
+        }
+
+        playlist.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'playlist-item' + (index === currentPlaylistIndex ? ' active' : '');
+
+            const main = document.createElement('div');
+            main.className = 'playlist-main';
+            const title = document.createElement('div');
+            title.className = 'playlist-title';
+            title.textContent = item.id;
+            const meta = document.createElement('div');
+            meta.className = 'playlist-meta';
+            meta.textContent = item.short ? 'Shorts' : '動画';
+            main.append(title, meta);
+
+            const playBtn = document.createElement('button');
+            playBtn.type = 'button';
+            playBtn.className = 'mini-btn';
+            playBtn.textContent = '再生';
+            playBtn.addEventListener('click', () => playPlaylistAt(index));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'mini-btn danger';
+            deleteBtn.textContent = '削除';
+            deleteBtn.addEventListener('click', () => {
+                playlist.splice(index, 1);
+                if (currentPlaylistIndex === index) currentPlaylistIndex = -1;
+                if (currentPlaylistIndex > index) currentPlaylistIndex -= 1;
+                savePlaylist();
+            });
+
+            li.append(main, playBtn, deleteBtn);
+            list.appendChild(li);
+        });
+    }
+
+    function renderShortsFeed() {
+        const feed = $('shorts-feed');
+        feed.textContent = '';
+        if (!playlist.length) {
+            const empty = document.createElement('div');
+            empty.className = 'none';
+            empty.textContent = 'プレイリストが空です';
+            feed.appendChild(empty);
+            return;
+        }
+
+        playlist.forEach((item, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'shorts-card' + (index === currentPlaylistIndex ? ' active' : '');
+            button.addEventListener('click', () => playPlaylistAt(index));
+
+            const img = document.createElement('img');
+            img.src = 'https://i.ytimg.com/vi/' + item.id + '/hqdefault.jpg';
+            img.alt = item.id;
+
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = item.short ? 'Shorts' : '動画';
+            const vid = document.createElement('div');
+            vid.className = 'vid-id';
+            vid.textContent = item.id;
+            meta.append(tag, vid);
+
+            button.append(img, meta);
+            feed.appendChild(button);
+        });
+
+        if (currentPlaylistIndex >= 0 && feed.children[currentPlaylistIndex]) {
+            feed.children[currentPlaylistIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }
+
+    function playPlaylistAt(index) {
+        if (!playlist.length || index < 0 || index >= playlist.length) return;
+        currentPlaylistIndex = index;
+        play(playlist[index].id, playlist[index].short);
+    }
+
+    function advancePlaylist() {
+        if (!autoNextEnabled || !playlist.length) return;
+        let nextIndex = 0;
+        if (currentPlaylistIndex >= 0) nextIndex = (currentPlaylistIndex + 1) % playlist.length;
+        playPlaylistAt(nextIndex);
+    }
+
+    $('playlist-form').addEventListener('submit', e => {
+        e.preventDefault();
+        addToPlaylist($('playlist-input').value);
+        $('playlist-input').value = '';
+    });
+
+    $('play-next-btn').addEventListener('click', () => {
+        if (!playlist.length) return;
+        const nextIndex = currentPlaylistIndex >= 0 ? (currentPlaylistIndex + 1) % playlist.length : 0;
+        playPlaylistAt(nextIndex);
+    });
+
+    $('clear-playlist-btn').addEventListener('click', () => {
+        if (!playlist.length) return;
+        if (confirm('プレイリストを全部削除しますか？')) {
+            playlist = [];
+            currentPlaylistIndex = -1;
+            savePlaylist();
+        }
+    });
+
+    // ---------- Auto next on end ----------
+    window.addEventListener('message', (event) => {
+        if (!event.data || !/^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)/.test(event.origin)) return;
+
+        let payload = event.data;
+        if (typeof payload === 'string') {
+            try { payload = JSON.parse(payload); } catch (e) { return; }
+        }
+
+        if (payload && payload.event === 'infoDelivery' && payload.info && payload.info.playerState === 0 && autoNextEnabled && playlist.length) {
+            setTimeout(() => advancePlaylist(), 700);
+        }
+    });
+
     // ---------- 初期化 ----------
     renderHistories();
+    renderPlaylist();
+    renderShortsFeed();
     refreshControls();
     const last = load('lastVideo', null);
     if (last && last.id) {
-        // 前回の動画をそのまま表示(自動再生はしない)
         current = last;
-        const base = noCookie ? 'https://www.youtube-nocookie.com/embed/' : 'https://www.youtube.com/embed/';
-        frame.src = base + last.id + '?modestbranding=1&rel=0&playsinline=1';
+        frame.src = buildYouTubeEmbedUrl(last.id, last.short);
         $('open-link').href = 'https://www.youtube.com/' + (last.short ? 'shorts/' : 'watch?v=') + last.id;
         $('open-link').classList.remove('hidden');
         playerWrap.classList.add('has-video');
