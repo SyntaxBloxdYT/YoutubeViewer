@@ -42,7 +42,6 @@
         #player-box.shorts { width: auto; max-width: 100%; aspect-ratio: 9 / 16; }
         iframe { width: 100%; height: 100%; border: none; display: block; background: #000; }
         #yt-player-host { width: 100%; height: 100%; display: none; }
-        #yt-player-host iframe { width: 100%; height: 100%; border: none; display: block; }
         #empty { position: absolute; color: var(--muted); text-align: center; pointer-events: none; line-height: 1.8; }
         #empty b { display: block; font-size: 16px; color: var(--text); }
         #player-wrap.has-video #empty { display: none; }
@@ -234,6 +233,7 @@
     let playlist = load('playlistQueue', []);
     let currentPlaylistIndex = -1;
     let ytPlayer = null;
+    let isYTReady = false;
 
     function refreshControls() {
         const isShort = current ? current.short : shortsDefault;
@@ -304,42 +304,48 @@
         return base + id + '?' + params.toString();
     }
 
+    function attachYTStateListener() {
+        if (!window.YT || !window.YT.Player || !ytPlayer) return;
+        const oldState = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : null;
+        if (oldState === YT.PlayerState.ENDED && autoNextEnabled && playlist.length) {
+            setTimeout(advancePlaylist, 700);
+        }
+    }
+
+    function initYTPlayer() {
+        if (!window.YT || !window.YT.Player) return;
+        if (ytPlayer) return;
+        ytPlayer = new YT.Player('yt-player-host', {
+            videoId: current ? current.id : '',
+            playerVars: {
+                autoplay: 1,
+                modestbranding: 1,
+                rel: 0,
+                playsinline: 1,
+                enablejsapi: 1,
+                loop: loopOn ? 1 : 0,
+                origin: window.location.origin
+            },
+            events: {
+                onReady: function () {
+                    isYTReady = true;
+                    if (current) {
+                        ytPlayer.loadVideoById(current.id);
+                    }
+                },
+                onStateChange: function (event) {
+                    if (event.data === YT.PlayerState.ENDED && autoNextEnabled && playlist.length) {
+                        setTimeout(advancePlaylist, 700);
+                    }
+                }
+            }
+        });
+    }
+
     function showFallbackIframe(id) {
         frame.style.display = 'block';
         ytHost.style.display = 'none';
         frame.src = buildYouTubeEmbedUrl(id);
-    }
-
-    function ensureYTPlayer() {
-        if (!window.YT || !window.YT.Player) return false;
-        if (!ytPlayer) {
-            ytPlayer = new YT.Player('yt-player-host', {
-                videoId: current ? current.id : '',
-                playerVars: {
-                    autoplay: 1,
-                    modestbranding: 1,
-                    rel: 0,
-                    playsinline: 1,
-                    enablejsapi: 1,
-                    loop: loopOn ? 1 : 0
-                },
-                events: {
-                    onReady: () => {
-                        if (current && ytPlayer) {
-                            ytPlayer.loadVideoById(current.id);
-                        }
-                    },
-                    onStateChange: (event) => {
-                        if (event.data === YT.PlayerState.ENDED && autoNextEnabled && playlist.length) {
-                            setTimeout(advancePlaylist, 700);
-                        }
-                    }
-                }
-            });
-        }
-        frame.style.display = 'none';
-        ytHost.style.display = 'block';
-        return true;
     }
 
     function play(id, short) {
@@ -353,9 +359,7 @@
         playerWrap.classList.add('has-video');
 
         if (window.YT && window.YT.Player) {
-            if (!ytPlayer) {
-                ensureYTPlayer();
-            }
+            initYTPlayer();
             if (ytPlayer) {
                 ytPlayer.loadVideoById(id);
                 frame.style.display = 'none';
@@ -567,7 +571,7 @@
         $('playlist-input').value = '';
     });
     $('play-next-btn').addEventListener('click', () => {
-        if (!playlist.length) { alert('プレイリストが空です。先に動画を追加してくだ���い。'); return; }
+        if (!playlist.length) { alert('プレイリストが空です。先に動画を追加してください。'); return; }
         const nextIndex = currentPlaylistIndex >= 0 ? (currentPlaylistIndex + 1) % playlist.length : 0;
         playPlaylistAt(nextIndex);
     });
@@ -578,11 +582,11 @@
         }
     });
 
-    window.onYouTubeIframeAPIReady = function () {
-        if (current && !ytPlayer) {
-            ensureYTPlayer();
-        }
-    };
+    function onYTAPIReady() {
+        isYTReady = true;
+        initYTPlayer();
+    }
+    window.onYouTubeIframeAPIReady = onYTAPIReady;
 
     renderHistories();
     renderPlaylist();
@@ -591,7 +595,7 @@
     if (last && last.id) {
         current = last;
         if (window.YT && window.YT.Player) {
-            ensureYTPlayer();
+            initYTPlayer();
             ytPlayer.loadVideoById(last.id);
             frame.style.display = 'none';
             ytHost.style.display = 'block';
